@@ -1,0 +1,10 @@
+body {
+    margin: 0; /* Remove default margins for full-screen canvas */
+    overflow: hidden; /* Prevent scrollbars if the canvas is larger than the window */
+    background-color: #f0f0f0; /* Set a light background color */
+}
+
+#ballCanvas {
+    display: block; /* Remove extra space below the canvas */
+    background-color: #fff; /* Set a white canvas background */
+}
