@@ -1,47 +1,44 @@
-// Module alias Matter
 const { Engine, Render, World, Bodies } = Matter;
 
-// Create canvas and engine
 const engine = Engine.create();
 const render = Render.create({
     canvas: document.getElementById('ballCanvas'),
     engine: engine,
     options: {
         wireframes: false,
-        background: '#fff'
+        background: '#fff',
+        width: window.innerWidth,
+        height: window.innerHeight 
     }
 });
 
-// CSS for full-screen canvas
-const canvas = document.getElementById('ballCanvas'); 
-canvas.style.width = '100%';
-canvas.style.height = '100%';
-document.body.style.margin = 0; // Remove default body margins
+const canvas = document.getElementById('ballCanvas');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-// Create balls
+const numBalls = 1000; // Adjusted for performance
 const balls = [];
-for (let i = 0; i < 100; i++) {
-    balls.push(Bodies.circle(
-        Math.random() * window.innerWidth,
-        Math.random() * window.innerHeight,
-        10,
-        { restitution: 0.8 } 
-    ));
+for (let i = 0; i < numBalls; i++) {
+    const ball = Bodies.circle(
+        Math.random() * window.innerWidth, 
+        Math.random() * window.innerHeight, 
+        6, 
+        { restitution: 0.9, frictionAir: 0.01 } // Added frictionAir for damping
+    );
+    balls.push(ball);
+    World.add(engine.world, ball);
 }
 
-// Function to dynamically create walls
-function createWalls() {
+function createWalls(width, height) {
     return [
-        Bodies.rectangle(window.innerWidth / 2, -25, window.innerWidth, 50, { isStatic: true }),
-        Bodies.rectangle(window.innerWidth / 2, window.innerHeight + 25, window.innerWidth, 50, { isStatic: true }),
-        Bodies.rectangle(-25, window.innerHeight / 2, 50, window.innerHeight, { isStatic: true }),
-        Bodies.rectangle(window.innerWidth + 25, window.innerHeight / 2, 50, window.innerHeight, { isStatic: true })
+        Bodies.rectangle(width / 2, -25, width, 50, { isStatic: true }),
+        Bodies.rectangle(width / 2, height + 25, width, 50, { isStatic: true }),
+        Bodies.rectangle(-25, height / 2, 50, height, { isStatic: true }),
+        Bodies.rectangle(width + 25, height / 2, 50, height, { isStatic: true })
     ];
 }
-World.add(engine.world, balls);
-World.add(engine.world, createWalls()); // Initial walls
-
-// Update and movement logic
+let walls = createWalls(window.innerWidth, window.innerHeight);
+World.add(engine.world, walls);
 let prevX = window.screenX;
 let prevY = window.screenY;
 let movementSpeedFactor = 0.02;
@@ -52,46 +49,36 @@ function update() {
 
     balls.forEach(ball => {
         Matter.Body.setVelocity(ball, { 
-            x: ball.velocity.x + deltaX,
-            y: ball.velocity.y + deltaY
+            x: ball.velocity.x + deltaX, 
+            y: ball.velocity.y + deltaY 
         });
-
+        
+        // Clearer collision handling
+        const { x, y } = ball.position;
         const radius = ball.circleRadius;
-        if (ball.position.x - radius < 0) {
-            Matter.Body.setPosition(ball, { x: radius, y: ball.position.y });
-            Matter.Body.setVelocity(ball, {x: Math.abs(ball.velocity.x), y: ball.velocity.y}); 
-        } else if (ball.position.x + radius > render.options.width) {
-            Matter.Body.setPosition(ball, { x: render.options.width - radius, y: ball.position.y });
-            Matter.Body.setVelocity(ball, {x: -Math.abs(ball.velocity.x), y: ball.velocity.y}); 
-        }
-        if (ball.position.y - radius < 0) {
-            Matter.Body.setPosition(ball, { x: ball.position.x, y: radius });
-            Matter.Body.setVelocity(ball, {x: ball.velocity.x, y: Math.abs(ball.velocity.y)}); 
-        } else if (ball.position.y + radius > render.options.height) {
-            Matter.Body.setPosition(ball, { x: ball.position.x, y: render.options.height - radius });
-            Matter.Body.setVelocity(ball, {x: ball.velocity.x, y: -Math.abs(ball.velocity.y)}); 
-        }
+
+        if (x - radius < 0) { ball.position.x = radius; ball.velocity.x *= -1; }
+        if (x + radius > render.options.width) { ball.position.x = render.options.width - radius; ball.velocity.x *= -1; }
+        if (y - radius < 0) { ball.position.y = radius; ball.velocity.y *= -1; }
+        if (y + radius > render.options.height) { ball.position.y = render.options.height - radius; ball.velocity.y *= -1; }
     });
 
     prevX = window.screenX;
-    prevY = window.screenY;
-
-    requestAnimationFrame(update);
+    prevY = window.screenY; 
+    requestAnimationFrame(update); 
 }
 
-update();
+update(); 
 
-// Resize handling with wall updates
 window.addEventListener('resize', () => {
     render.canvas.width = window.innerWidth;
     render.canvas.height = window.innerHeight;
     render.options.width = window.innerWidth;
     render.options.height = window.innerHeight;
 
-    const walls = engine.world.bodies.filter(body => body.isStatic);
-    World.remove(engine.world, walls);
-    World.add(engine.world, createWalls());
+    World.remove(engine.world, walls); // Remove old walls
+    walls = createWalls(window.innerWidth, window.innerHeight); // Create new walls
+    World.add(engine.world, walls);
 });
-
 Engine.run(engine);
 Render.run(render);
