@@ -23,7 +23,7 @@ for (let i = 0; i < numBalls; i++) {
         Math.random() * window.innerWidth, 
         Math.random() * window.innerHeight, 
         6, 
-        { restitution: 0.9, frictionAir: 0.01 } // Added frictionAir for damping
+        { restitution: 0.9, frictionAir: 0.01 } 
     );
     balls.push(ball);
     World.add(engine.world, ball);
@@ -43,6 +43,26 @@ let prevX = window.screenX;
 let prevY = window.screenY;
 let movementSpeedFactor = 0.02;
 
+// Device Detection
+const isPhone = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+
+// Phone Movement Handling
+if (isPhone) { // Only react to movement if on a phone
+    window.addEventListener('devicemotion', (event) => {
+        const { acceleration } = event;
+        const deltaX = acceleration.x * movementSpeedFactor * 2;  // Higher factor for more dramatic effect
+        const deltaY = acceleration.y * movementSpeedFactor * 2;
+        
+        // Update ball velocities
+        balls.forEach(ball => {
+            Matter.Body.setVelocity(ball, { 
+                x: ball.velocity.x + deltaX, 
+                y: ball.velocity.y + deltaY 
+            });
+        });
+    });
+}
 function update() {
     const deltaX = (window.screenX - prevX) * movementSpeedFactor;
     const deltaY = (window.screenY - prevY) * movementSpeedFactor;
